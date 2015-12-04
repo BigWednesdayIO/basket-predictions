@@ -33,7 +33,8 @@ const getPrediction = rx.Observable.fromCallback(google.prediction('v1.6').train
 
 const percentError = (predicted, actual) => {
   // https://en.wikipedia.org/wiki/Relative_change_and_difference#Percent_error
-  return (Math.abs(predicted - actual) / actual) * 100;
+  const diff = Math.abs(predicted - actual);
+  return (Math.round(diff) / actual) * 100;
 };
 
 rxNode.fromReadableStream(fs.createReadStream(program.testFile))
@@ -42,7 +43,7 @@ rxNode.fromReadableStream(fs.createReadStream(program.testFile))
     console.log(`Processing ${t.length} lines`)
   })
   .flatMap(t => t)
-  .take(3)
+  .take(50)
   .map(t => t.split(','))
   .flatMap(t => {
     const actualVolume = t[0];
@@ -69,8 +70,6 @@ rxNode.fromReadableStream(fs.createReadStream(program.testFile))
     console.log(`${differences.length} tests cases analysed`);
     console.log(`Mean ${stats.mean(differences).toFixed(2)}`);
     console.log(`Median ${stats.median(differences).toFixed(2)}`);
-    const mode = stats.mode(differences);
-    console.log(`Mode ${mode.length ? mode.map(n => n.toFixed(2)) : mode.toFixed(2)}`);
     console.log(`Variance ${stats.variance(differences).toFixed(2)}`);
     console.log(`Standard deviation ${stats.stdev(differences).toFixed(2)}`);
   }, err => {
