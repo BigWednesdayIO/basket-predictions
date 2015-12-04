@@ -10,6 +10,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "commander": "^2.9.0",
+    "debug": "^2.2.0",
     "googleapis": "^2.1.6",
     "rx": "^4.0.7",
     "rx-node": "^1.0.1"
