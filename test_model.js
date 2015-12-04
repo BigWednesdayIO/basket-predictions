@@ -8,6 +8,7 @@ const google = require('googleapis');
 const program = require('commander');
 const rx = require('rx');
 const rxNode = require('rx-node');
+const stats = require('stats-lite');
 
 program
   .option('-m, --model [model]', 'Prediction model name')
@@ -57,7 +58,14 @@ rxNode.fromReadableStream(fs.createReadStream(program.testFile))
   })
   .toArray()
   .subscribe(differences => {
-    console.log(differences);
+    debug(differences);
+    console.log(`${differences.length} tests cases analysed`);
+    console.log(`Mean ${stats.mean(differences).toFixed(2)}`);
+    console.log(`Median ${stats.median(differences).toFixed(2)}`);
+    const mode = stats.mode(differences);
+    console.log(`Mode ${mode.length ? mode.map(n => n.toFixed(2)) : mode.toFixed(2)}`);
+    console.log(`Variance ${stats.variance(differences).toFixed(2)}`);
+    console.log(`Standard deviation ${stats.stdev(differences).toFixed(2)}`);
   }, err => {
     console.error('Error', err);
   }, () => {
