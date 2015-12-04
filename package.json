@@ -9,6 +9,8 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
-    "commander": "^2.9.0"
+    "commander": "^2.9.0",
+    "rx": "^4.0.7",
+    "rx-node": "^1.0.1"
   }
 }
