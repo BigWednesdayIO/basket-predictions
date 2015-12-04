@@ -38,6 +38,9 @@ const percentError = (predicted, actual) => {
 
 rxNode.fromReadableStream(fs.createReadStream(program.testFile))
   .map(t => t.toString().split('\r\n'))
+  .do(t => {
+    console.log(`Processing ${t.length} lines`)
+  })
   .flatMap(t => t)
   .take(3)
   .map(t => t.split(','))
@@ -51,6 +54,10 @@ rxNode.fromReadableStream(fs.createReadStream(program.testFile))
       project: program.project,
       resource: {input: {csvInstance: features}}
     }).map(p => {
+      if (p[0]) {
+        return console.error(p[0]);
+      }
+
       debug(features);
       debug(`Predicted ${p[1].outputValue}, Actual ${actualVolume}`);
       return percentError(p[1].outputValue, actualVolume)
