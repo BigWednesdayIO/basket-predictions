@@ -53,9 +53,10 @@ const percentError = (predicted, actual) => {
 
 const getActualVolume = fields => parseInt(fields[0]);
 
-const differences = {
+const summary = {
   sum: 0,
-  count: 0
+  count: 0,
+  matches: 0
 };
 
 rxNode.fromReadableStream(fs.createReadStream(program.testFile))
@@ -64,7 +65,7 @@ rxNode.fromReadableStream(fs.createReadStream(program.testFile))
     console.log(`Processing ${lines.length} lines`);
     return lines;
   })
-  .take(300)
+  .take(10)
   .map(line => line.split(','))
   .filter(fields => getActualVolume(fields) !== 0)
   .concatMap(fields => {
@@ -88,16 +89,27 @@ rxNode.fromReadableStream(fs.createReadStream(program.testFile))
         throw new Error('Invalid error amount');
       }
 
-      return errorAmount;
+      const roundedMatch = Math.round(result.outputValue) === actualVolume ? true : false;
+
+      return {errorAmount, roundedMatch};
     })
   })
-  .subscribe(difference => {
-    differences.sum += difference;
-    ++differences.count;
+  .subscribe(result => {
+    if (result.roundedMatch) {
+      ++summary.matches;
+    }
+    summary.sum += result.errorAmount;
+    ++summary.count;
   }, err => {
     console.error('Error', err);
   }, () => {
-    console.log(`Total cases analysed: ${differences.count}`);
-    const mean = differences.sum / differences.count;
-    console.log(`Mean error ${mean.toFixed(2)}`);
+    console.log(summary);
+
+    console.log(`${summary.count} cases analysed`);
+
+    const mean = summary.sum / summary.count;
+    console.log(`${mean.toFixed(2)} mean error`);
+
+    const matched = (summary.matches / summary.count) * 100;
+    console.log(`${matched.toFixed(0)}% correctly predicted`);
   });
