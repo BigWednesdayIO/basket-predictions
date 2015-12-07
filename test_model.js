@@ -47,9 +47,11 @@ const getPrediction = (params => {
 
 const percentError = (predicted, actual) => {
   // https://en.wikipedia.org/wiki/Relative_change_and_difference#Percent_error
-  const diff = Math.abs(predicted - actual);
-  return (Math.round(diff) / actual) * 100;
+  const diff = Math.abs(Math.round(predicted) - actual);
+  return (diff / actual) * 100;
 };
+
+const getActualVolume = fields => parseInt(fields[0]);
 
 const differences = {
   sum: 0,
@@ -57,15 +59,16 @@ const differences = {
 };
 
 rxNode.fromReadableStream(fs.createReadStream(program.testFile))
-  .flatMap(t => {
-    const lines = t.toString().split('\r\n');
+  .flatMap(chunk => {
+    const lines = chunk.toString().split('\r\n');
     console.log(`Processing ${lines.length} lines`);
     return lines;
   })
-  .take(150)
-  .concatMap(t => {
-    const fields = t.split(',');
-    const actualVolume = fields[0];
+  .take(300)
+  .map(line => line.split(','))
+  .filter(fields => getActualVolume(fields) !== 0)
+  .concatMap(fields => {
+    const actualVolume = getActualVolume(fields);
     const features = fields.slice(1);
 
     debug('Preparing prediction request');
@@ -76,10 +79,17 @@ rxNode.fromReadableStream(fs.createReadStream(program.testFile))
       project: program.project,
       resource: {input: {csvInstance: features}}
     }))
-    .map(p => {
-      debug(`Predicted ${p.outputValue}, Actual ${actualVolume}`);
-      return percentError(p.outputValue, actualVolume)
-    });
+    .map(result => {
+      debug(`Predicted ${result.outputValue}, Actual ${actualVolume}`);
+      const errorAmount = percentError(result.outputValue, actualVolume);
+
+      if (Number.isNaN(errorAmount)) {
+        console.error('Invalid error amount for:', fields);
+        throw new Error('Invalid error amount');
+      }
+
+      return errorAmount;
+    })
   })
   .subscribe(difference => {
     differences.sum += difference;
