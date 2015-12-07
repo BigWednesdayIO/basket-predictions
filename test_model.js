@@ -14,9 +14,10 @@ program
   .option('-p, --project [project]', 'GCloud project')
   .option('-k, --key-file [file]', 'GCloud keyfile path')
   .option('-t, --test-file [file]', 'Test file path')
+  .option('-n, --number-of-cases [number]', 'Number of tests cases to check')
   .parse(process.argv);
 
-if (!program.model || !program.project || !program.testFile || !program.keyFile) {
+if (!program.model || !program.project || !program.testFile || !program.keyFile || !program.numberOfCases) {
   program.outputHelp(help => {
     console.log('  Missing command line args');
     console.log(help);
@@ -34,7 +35,7 @@ const getPrediction = (params => {
 
     google.prediction('v1.6').trainedmodels.predict(params, (err, result) => {
       if (err) {
-        console.error(err);
+        console.error('Prediction failed with:', err);
         observer.onError(err);
       } else {
         debug('Prediction request returned');
@@ -65,7 +66,7 @@ rxNode.fromReadableStream(fs.createReadStream(program.testFile))
     console.log(`Processing ${lines.length} lines`);
     return lines;
   })
-  .take(10)
+  .take(parseInt(program.numberOfCases))
   .map(line => line.split(','))
   .filter(fields => getActualVolume(fields) !== 0)
   .concatMap(fields => {
@@ -81,6 +82,7 @@ rxNode.fromReadableStream(fs.createReadStream(program.testFile))
       resource: {input: {csvInstance: features}}
     }))
     .map(result => {
+      debug(fields);
       debug(`Predicted ${result.outputValue}, Actual ${actualVolume}`);
       const errorAmount = percentError(result.outputValue, actualVolume);
 
